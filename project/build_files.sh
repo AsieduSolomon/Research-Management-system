@@ -9,13 +9,28 @@ python3 -m pip install -r requirements.txt
 echo "📁 Collecting static files..."
 python3 manage.py collectstatic --noinput --clear
 
-# Run migrations (creates SQLite database)
+# Run migrations
 echo "🗄️ Running migrations..."
 python3 manage.py makemigrations
 python3 manage.py migrate
 
-# Create superuser if needed (optional - for demo)
+# Create superuser
 echo "👤 Creating superuser..."
-echo "from django.contrib.auth import get_user_model; User = get_user_model(); User.objects.create_superuser('admin', 'admin@example.com', 'admin123') if not User.objects.filter(username='admin').exists() else None" | python3 manage.py shell
+python3 -c "
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'project.settings')
+import django
+django.setup()
+from django.contrib.auth import get_user_model
+User = get_user_model()
+username = 'admin'
+email = 'admin@research.com'
+password = 'Admin123!'
+if not User.objects.filter(username=username).exists():
+    User.objects.create_superuser(username, email, password)
+    print('✅ Superuser created successfully!')
+else:
+    print('ℹ️ Superuser already exists.')
+"
 
 echo "✅ Build completed successfully!"
