@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Supervisor Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0">Supervisor Dashboard</h2>
+        <p class="text-muted mb-0">Welcome back, {{ user.get_full_name|default:user.username }}</p>
+    </div>
+    <a href="{% url 'supervisor_progress_overview' %}" class="btn btn-outline-primary">
+        <i class="fas fa-chart-bar me-2"></i> Full Progress Report
+    </a>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ total_students }}</div>
+            <div class="stat-label">Active Students</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-number text-warning">{{ pending_reports }}</div>
+            <div class="stat-label">Pending Reviews</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-number text-info">{{ upcoming_meetings|length }}</div>
+            <div class="stat-label">Upcoming Meetings</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card">
+            <div class="stat-number text-danger">{{ overdue_milestones|length }}</div>
+            <div class="stat-label">Overdue Milestones</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Students snapshot -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-user-graduate me-2"></i>My Students</span>
+                <a href="{% url 'supervisor_students' %}" class="btn btn-sm btn-link">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% for alloc in allocations %}
+                <div class="border-bottom p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <strong>{{ alloc.student.get_full_name|default:alloc.student.username }}</strong>
+                            {% if alloc.overdue_milestones %}
+                            <span class="badge bg-danger ms-1">{{ alloc.overdue_milestones }} overdue</span>
+                            {% endif %}
+                            {% if alloc.pending_docs %}
+                            <span class="badge bg-warning text-dark ms-1">{{ alloc.pending_docs }} pending</span>
+                            {% endif %}
+                        </div>
+                        <a href="{% url 'supervisor_student_detail' alloc.student.id %}" class="btn btn-xs btn-outline-primary">Manage</a>
+                    </div>
+                    <small class="text-muted d-block mb-1">{{ alloc.proposal.title|truncatechars:55 }}</small>
+                    <div class="progress" style="height:6px;">
+                        <div class="progress-bar bg-success" style="width:{{ alloc.avg_progress }}%"></div>
+                    </div>
+                    <small class="text-muted">{{ alloc.avg_progress }}% average progress</small>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">No students assigned yet.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="col-md-6">
+        <!-- Recent submissions -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-inbox me-2"></i>Recent Submissions</span>
+                <a href="{% url 'supervisor_documents' %}" class="btn btn-sm btn-link">Review All</a>
+            </div>
+            <div class="card-body p-0">
+                {% for doc in recent_submissions %}
+                <div class="border-bottom p-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="small">{{ doc.title|truncatechars:45 }}</strong>
+                        <br><small class="text-muted">{{ doc.student.get_full_name }} · {{ doc.submitted_at|timesince }} ago</small>
+                    </div>
+                    <span class="badge bg-warning text-dark">Pending</span>
+                </div>
+                {% empty %}
+                <div class="text-center py-3 text-muted small">No pending submissions.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Upcoming meetings -->
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-calendar-alt me-2"></i>Upcoming Meetings</span>
+                <a href="{% url 'meetings' %}" class="btn btn-sm btn-link">All Meetings</a>
+            </div>
+            <div class="card-body p-0">
+                {% for m in upcoming_meetings %}
+                <div class="border-bottom p-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <strong class="small">{{ m.title }}</strong>
+                        <br><small class="text-muted">{{ m.meeting_date|date:"M d, Y H:i" }} · {{ m.student.get_full_name }}</small>
+                    </div>
+                    <a href="{% url 'supervisor_meeting_update' m.id %}" class="btn btn-xs btn-outline-secondary">Minutes</a>
+                </div>
+                {% empty %}
+                <div class="text-center py-3 text-muted small">No upcoming meetings.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Overdue milestones -->
+        {% if overdue_milestones %}
+        <div class="card border-danger">
+            <div class="card-header bg-danger text-white">
+                <i class="fas fa-exclamation-triangle me-2"></i> Overdue Milestones
+            </div>
+            <div class="card-body p-0">
+                {% for ms in overdue_milestones %}
+                <div class="border-bottom p-3">
+                    <strong class="small">{{ ms.title }}</strong>
+                    <br><small class="text-muted">{{ ms.allocation.student.get_full_name }} · Due {{ ms.due_date|date:"M d, Y" }}</small>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

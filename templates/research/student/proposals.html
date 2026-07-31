@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}My Proposals{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">My Research Proposals</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-header">{% if is_edit %}Edit Proposal{% else %}New Proposal{% endif %}</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Title *</label>
+                        <input type="text" name="title" class="form-control" value="{{ form.title.value|default:'' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Abstract *</label>
+                        <textarea name="abstract" class="form-control" rows="4" required>{{ form.abstract.value|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Objectives</label>
+                        <textarea name="objectives" class="form-control" rows="3">{{ form.objectives.value|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Methodology</label>
+                        <textarea name="methodology" class="form-control" rows="3">{{ form.methodology.value|default:'' }}</textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Keywords</label>
+                        <input type="text" name="keywords" class="form-control" value="{{ form.keywords.value|default:'' }}" placeholder="e.g., machine learning, data science">
+                        <small class="text-muted">Used for supervisor matching</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Department</label>
+                        <input type="text" name="department" class="form-control" value="{{ form.department.value|default:user.department }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Program</label>
+                        <input type="text" name="program" class="form-control" value="{{ form.program.value|default:'BTech' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Academic Year</label>
+                        <input type="text" name="academic_year" class="form-control" value="{{ form.academic_year.value|default:'2024/2025' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Document (Optional)</label>
+                        <input type="file" name="document" class="form-control" accept=".pdf,.doc,.docx,.pptx,.txt">
+                        <small class="text-muted">Upload your full proposal document. Keywords will be auto-extracted.</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" name="save_draft" class="btn btn-secondary">Save as Draft</button>
+                        <button type="submit" class="btn btn-primary">Submit for Review</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-7">
+        <div class="card">
+            <div class="card-header">My Proposals</div>
+            <div class="card-body p-0">
+                {% for proposal in proposals %}
+                <div class="border-bottom p-3">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1">{{ proposal.title }}</h6>
+                            <p class="small text-muted mb-1">{{ proposal.created_at|date:"M d, Y" }}</p>
+                            <p class="small">{{ proposal.abstract|truncatechars:150 }}</p>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge-status badge-{{ proposal.status }}">{{ proposal.get_status_display }}</span>
+                            {% if proposal.status == 'draft' or proposal.status == 'revision_required' %}
+                            <div class="mt-2">
+                                <a href="{% url 'student_edit_proposal' proposal.id %}" class="btn btn-sm btn-outline-primary">Edit</a>
+                                <a href="{% url 'student_delete_proposal' proposal.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this proposal?')">Delete</a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% if proposal.admin_comments %}
+                    <div class="mt-2 p-2 bg-warning bg-opacity-10 rounded small">
+                        <strong>Admin Feedback:</strong> {{ proposal.admin_comments }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% empty %}
+                <div class="text-center py-4">
+                    <p class="text-muted">No proposals yet.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

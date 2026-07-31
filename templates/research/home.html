@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row min-vh-100 align-items-center">
+        <div class="col-lg-6">
+            <h1 class="display-4 fw-bold" style="color: var(--primary);">STU Research Portal</h1>
+            <p class="lead mt-3">Integrated Online Platform for Research Proposal Submission, Supervisor Allocation, and Progress Tracking</p>
+            <p class="mb-4">Sunyani Technical University — Faculty of Engineering, Department of Electrical & Electronic Engineering</p>
+            <div class="d-flex gap-3">
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg">Login to Portal</a>
+            </div>
+        </div>
+        <div class="col-lg-6 text-center">
+            <i class="fas fa-graduation-cap" style="font-size: 15rem; color: var(--light);"></i>
+        </div>
+    </div>
+    
+    <div class="row mt-5 py-5">
+        <div class="col-md-4 text-center">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="fas fa-file-alt fa-3x" style="color: var(--primary);"></i>
+                    <h5 class="mt-3">Submit Proposals</h5>
+                    <p class="text-muted">Students can submit research proposals online with document uploads</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-center">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="fas fa-link fa-3x" style="color: var(--primary);"></i>
+                    <h5 class="mt-3">Intelligent Allocation</h5>
+                    <p class="text-muted">Chaotic mapping algorithm matches students with suitable supervisors</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-center">
+            <div class="card h-100">
+                <div class="card-body">
+                    <i class="fas fa-chart-line fa-3x" style="color: var(--primary);"></i>
+                    <h5 class="mt-3">Track Progress</h5>
+                    <p class="text-muted">Real-time progress tracking, meetings, and document reviews</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

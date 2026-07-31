@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Student Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Welcome back, {{ user.first_name|default:user.username }}! 👋</h2>
+            <div>
+                {% if allocation %}
+                <span class="badge-status badge-{{ allocation.status }}">
+                    {{ allocation.get_status_display }}
+                </span>
+                {% else %}
+                <span class="badge bg-secondary">No Allocation Yet</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ proposals|length }}</div>
+            <div class="stat-label">Total Proposals</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ submitted_proposals }}</div>
+            <div class="stat-label">Submitted</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ reports|length }}</div>
+            <div class="stat-label">Documents Submitted</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ meetings|length }}</div>
+            <div class="stat-label">Upcoming Meetings</div>
+        </div>
+    </div>
+</div>
+
+{% if pending_proposals or pending_feedback %}
+<div class="row mb-3">
+    <div class="col-12">
+        {% if pending_proposals %}
+        <div class="alert alert-warning d-flex align-items-center" role="alert">
+            <i class="fas fa-clock me-2"></i>
+            You have <strong class="mx-1">{{ pending_proposals }}</strong> proposal(s) awaiting action.
+            <a href="{% url 'student_proposals' %}" class="btn btn-sm btn-warning ms-auto">View Proposals</a>
+        </div>
+        {% endif %}
+        {% if pending_feedback %}
+        <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="fas fa-comment-dots me-2"></i>
+            <strong class="me-1">{{ pending_feedback }}</strong> document(s) awaiting supervisor feedback.
+            <a href="{% url 'student_documents' %}" class="btn btn-sm btn-info ms-auto">View Documents</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<div class="row">
+    <!-- Recent Proposals -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-file-alt me-2"></i> Recent Proposals
+                <a href="{% url 'student_proposals' %}" class="btn btn-sm btn-link float-end">View All</a>
+            </div>
+            <div class="card-body">
+                {% if proposals %}
+                    {% for proposal in proposals|slice:":5" %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong>{{ proposal.title|truncatechars:50 }}</strong>
+                            <div class="small text-muted">{{ proposal.created_at|date:"M d, Y" }}</div>
+                        </div>
+                        <span class="badge-status badge-{{ proposal.status }}">{{ proposal.get_status_display }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-3">
+                        <p class="text-muted mb-2">No proposals yet.</p>
+                        <a href="{% url 'student_proposals' %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-plus me-1"></i> Create Proposal
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Upcoming Meetings -->
+    <div class="col-md-6 mb-4">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="fas fa-calendar-alt me-2"></i> Upcoming Meetings
+                <a href="{% url 'meetings' %}" class="btn btn-sm btn-link float-end">Schedule</a>
+            </div>
+            <div class="card-body">
+                {% if meetings %}
+                    {% for meeting in meetings %}
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div>
+                            <strong>{{ meeting.title }}</strong>
+                            <div class="small text-muted">
+                                <i class="fas fa-calendar me-1"></i> {{ meeting.meeting_date|date:"M d, Y H:i" }}<br>
+                                <i class="fas fa-map-marker-alt me-1"></i> {{ meeting.location|default:"TBD" }}
+                            </div>
+                        </div>
+                        <span class="badge-status badge-{{ meeting.status }}">{{ meeting.get_status_display }}</span>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No upcoming meetings.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Supervisor Info -->
+{% if allocation %}
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chalkboard-teacher me-2"></i> My Supervisor
+            </div>
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-md-2 text-center">
+                        <i class="fas fa-user-circle fa-4x" style="color: var(--primary, #1B4F72);"></i>
+                    </div>
+                    <div class="col-md-5">
+                        <h5>{{ allocation.supervisor.get_full_name|default:allocation.supervisor.username }}</h5>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-envelope me-2"></i> {{ allocation.supervisor.email }}
+                        </p>
+                        {% if allocation.supervisor.supervisor_profile.specialization %}
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-flask me-2"></i> {{ allocation.supervisor.supervisor_profile.specialization }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-5">
+                        <div class="small text-muted mb-1">
+                            <i class="fas fa-star me-1"></i> Match Score: {{ allocation.match_score_pct }}%
+                        </div>
+                        <div class="progress mb-3" style="height: 8px;">
+                            <div class="progress-bar bg-success" style="width: {{ allocation.match_score_pct }}%"></div>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="{% url 'student_documents' %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-upload me-1"></i> Submit Document
+                            </a>
+                            <a href="{% url 'meetings' %}" class="btn btn-sm btn-outline-secondary">
+                                <i class="fas fa-calendar-plus me-1"></i> Schedule Meeting
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="row">
+    <div class="col-12">
+        <div class="card border-warning">
+            <div class="card-body text-center py-4">
+                <i class="fas fa-hourglass-half fa-2x text-warning mb-3 d-block"></i>
+                <h5>Waiting for Supervisor Assignment</h5>
+                <p class="text-muted mb-0">
+                    Once your proposal is approved, an admin will assign you a supervisor.
+                    You'll receive a notification when this happens.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

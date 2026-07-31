@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Audit Log{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Audit Log</h2>
+            <div>
+                <button class="btn btn-outline-primary" onclick="location.reload()">
+                    <i class="fas fa-sync-alt me-2"></i> Refresh
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <label class="form-label">Filter by Action</label>
+        <select class="form-select" onchange="location.href='?action='+this.value+'&user={{ user_filter }}'">
+            <option value="">All Actions</option>
+            {% for action in actions %}
+            <option value="{{ action }}" {% if action_filter == action %}selected{% endif %}>{{ action }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Filter by User</label>
+        <input type="text" class="form-control" placeholder="Username..." id="userFilter" value="{{ user_filter }}">
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <button class="btn btn-primary me-2" onclick="applyFilters()">Apply</button>
+        <a href="{% url 'admin_audit_log' %}" class="btn btn-secondary">Clear</a>
+    </div>
+</div>
+
+<!-- Audit Log Table -->
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Module</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in page_obj %}
+                    <tr>
+                        <td><small>{{ log.created_at|date:"Y-m-d H:i:s" }}</small></td>
+                        <td>{{ log.user.username|default:"System" }}</td>
+                        <td>
+                            <span class="badge bg-secondary">{{ log.action }}</span>
+                        </td>
+                        <td>{{ log.module|default:"-" }}</td>
+                        <td>{{ log.description|truncatechars:100 }}</td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4">No audit log entries found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}">
+                Previous
+            </a>
+        </li>
+        {% endif %}
+        
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}">
+                {{ num }}
+            </a>
+        </li>
+        {% endfor %}
+        
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if action_filter %}&action={{ action_filter }}{% endif %}{% if user_filter %}&user={{ user_filter }}{% endif %}">
+                Next
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<script>
+    function applyFilters() {
+        const userFilter = document.getElementById('userFilter').value;
+        const actionFilter = document.querySelector('select').value;
+        let url = '?';
+        if (actionFilter) url += 'action=' + actionFilter + '&';
+        if (userFilter) url += 'user=' + userFilter;
+        location.href = url;
+    }
+    
+    document.getElementById('userFilter').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            applyFilters();
+        }
+    });
+</script>
+{% endblock %}

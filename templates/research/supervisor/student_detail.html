@@ -1,0 +1,315 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}{{ student.get_full_name }} — Student Detail{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'supervisor_students' %}" class="btn btn-sm btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <strong class="fs-4">{{ student.get_full_name|default:student.username }}</strong>
+        <span class="badge-status badge-{{ allocation.status }} ms-2">{{ allocation.get_status_display }}</span>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'supervisor_milestones' student.id %}" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-flag me-1"></i> Milestones
+        </a>
+        <a href="{% url 'meetings' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-calendar-plus me-1"></i> Schedule Meeting
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- LEFT: Student info + progress + actions -->
+    <div class="col-md-4">
+
+        <!-- Student info card -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="fas fa-user me-2"></i>Student Info</div>
+            <div class="card-body small">
+                <p class="mb-1"><strong>ID:</strong> {{ student.student_id|default:"—" }}</p>
+                <p class="mb-1"><strong>Email:</strong> {{ student.email }}</p>
+                <p class="mb-1"><strong>Phone:</strong> {{ student.phone|default:"—" }}</p>
+                <p class="mb-1"><strong>Dept:</strong> {{ student.department|default:"—" }}</p>
+                <p class="mb-0"><strong>Match Score:</strong> {{ allocation.match_score_pct }}%</p>
+                <div class="progress mt-1" style="height:5px;">
+                    <div class="progress-bar bg-success" style="width:{{ allocation.match_score_pct }}%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Research proposal -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="fas fa-file-alt me-2"></i>Research Proposal</div>
+            <div class="card-body small">
+                <p class="mb-1"><strong>{{ allocation.proposal.title }}</strong></p>
+                <p class="mb-1 text-muted">{{ allocation.proposal.keywords|default:"No keywords" }}</p>
+                <p class="mb-0">
+                    <span class="badge-status badge-{{ allocation.proposal.status }}">{{ allocation.proposal.get_status_display }}</span>
+                </p>
+                {% if allocation.proposal.document %}
+                <a href="{{ allocation.proposal.document.url }}" class="btn btn-xs btn-outline-primary mt-2" target="_blank">
+                    <i class="fas fa-download me-1"></i> Download Proposal
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Progress summary -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="fas fa-chart-pie me-2"></i>Progress Summary</div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between small mb-1">
+                    <span>Overall Progress</span><span>{{ avg_progress }}%</span>
+                </div>
+                <div class="progress mb-3" style="height:10px;">
+                    <div class="progress-bar bg-success" style="width:{{ avg_progress }}%"></div>
+                </div>
+                <div class="row text-center g-2">
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="fw-bold">{{ total_reports }}</div>
+                            <small class="text-muted">Submissions</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="border rounded p-2">
+                            <div class="fw-bold">{{ reviewed_reports }}</div>
+                            <small class="text-muted">Reviewed</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Open Chat -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="fas fa-comments me-2"></i>Direct Message</div>
+            <div class="card-body text-center">
+                <p class="small text-muted mb-3">
+                    Send and receive messages with {{ student.first_name|default:student.username }} in real time.
+                </p>
+                <a href="{% url 'conversation' allocation.id %}" class="btn btn-primary w-100">
+                    <i class="fas fa-comments me-2"></i> Open Chat
+                </a>
+            </div>
+        </div>
+
+        <!-- Private supervisor notes -->
+        <div class="card">
+            <div class="card-header"><i class="fas fa-lock me-2"></i>My Private Notes</div>
+            <div class="card-body">
+                <form method="post" class="mb-3">
+                    {% csrf_token %}
+                    <textarea name="note_content" class="form-control form-control-sm mb-2"
+                              rows="3" placeholder="Add a private supervision log note…" required></textarea>
+                    <button name="add_note" type="submit" class="btn btn-outline-secondary btn-sm w-100">
+                        <i class="fas fa-plus me-1"></i> Save Note
+                    </button>
+                </form>
+                {% for note in notes %}
+                <div class="border rounded p-2 mb-2 bg-light small">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <span>{{ note.content }}</span>
+                        <form method="post" class="ms-2 flex-shrink-0">
+                            {% csrf_token %}
+                            <input type="hidden" name="note_id" value="{{ note.id }}">
+                            <button name="delete_note" type="submit"
+                                    class="btn btn-xs btn-outline-danger"
+                                    onclick="return confirm('Delete this note?')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    <div class="text-muted mt-1" style="font-size:0.75rem;">{{ note.created_at|date:"M d, Y H:i" }}</div>
+                </div>
+                {% empty %}
+                <p class="text-muted small mb-0">No notes yet.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT: Tabs for reports, meetings, milestones -->
+    <div class="col-md-8">
+        <ul class="nav nav-tabs mb-3" id="detailTabs">
+            <li class="nav-item">
+                <a class="nav-link active" data-bs-toggle="tab" href="#tab-reports">
+                    <i class="fas fa-file-alt me-1"></i> Submissions
+                    {% if reports %}
+                    <span class="badge bg-secondary ms-1">{{ reports|length }}</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#tab-meetings">
+                    <i class="fas fa-calendar me-1"></i> Meetings
+                    <span class="badge bg-secondary ms-1">{{ meetings|length }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-bs-toggle="tab" href="#tab-milestones">
+                    <i class="fas fa-flag me-1"></i> Milestones
+                    <span class="badge bg-secondary ms-1">{{ milestones|length }}</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+            <!-- SUBMISSIONS TAB -->
+            <div class="tab-pane fade show active" id="tab-reports">
+                {% for report in reports %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <strong>{{ report.title }}</strong>
+                                <span class="badge bg-secondary ms-1">{{ report.get_report_type_display }}</span>
+                            </div>
+                            <span class="badge
+                                {% if report.status == 'approved' %}bg-success
+                                {% elif report.status == 'reviewed' %}bg-info
+                                {% else %}bg-warning text-dark{% endif %}">
+                                {{ report.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-1">
+                            Submitted {{ report.submitted_at|date:"M d, Y H:i" }}
+                            · Progress: {{ report.percentage_complete }}%
+                        </p>
+                        {% if report.content %}
+                        <p class="small mb-2">{{ report.content|truncatechars:150 }}</p>
+                        {% endif %}
+                        {% if report.document %}
+                        <a href="{{ report.document.url }}" class="btn btn-xs btn-outline-primary me-2" target="_blank">
+                            <i class="fas fa-download me-1"></i> Download
+                        </a>
+                        {% endif %}
+
+                        {% if report.supervisor_feedback %}
+                        <div class="alert alert-success py-2 mt-2 mb-0 small">
+                            <strong>Your feedback:</strong> {{ report.supervisor_feedback }}
+                            {% if report.supervisor_rating %}· Rating: {{ report.supervisor_rating }}/5 ⭐{% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if report.status == 'submitted' %}
+                        <form method="post" class="mt-3 border-top pt-3">
+                            {% csrf_token %}
+                            <input type="hidden" name="report_id" value="{{ report.id }}">
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold">Feedback <span class="text-danger">*</span></label>
+                                    <textarea name="feedback" class="form-control form-control-sm" rows="3" required
+                                              placeholder="Provide detailed feedback…"></textarea>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-semibold">Rating</label>
+                                    <select name="rating" class="form-select form-select-sm">
+                                        <option value="1">⭐ (1/5)</option>
+                                        <option value="2">⭐⭐ (2/5)</option>
+                                        <option value="3" selected>⭐⭐⭐ (3/5)</option>
+                                        <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                                        <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                                    </select>
+                                    <label class="form-label small fw-semibold mt-2">Decision</label>
+                                    <select name="report_status" class="form-select form-select-sm">
+                                        <option value="reviewed">Reviewed</option>
+                                        <option value="approved">Approved ✅</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button name="review_report" type="submit" class="btn btn-primary btn-sm w-100">
+                                        <i class="fas fa-check me-1"></i> Submit Review
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">No submissions yet.</div>
+                {% endfor %}
+            </div>
+
+            <!-- MEETINGS TAB -->
+            <div class="tab-pane fade" id="tab-meetings">
+                {% for meeting in meetings %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong>{{ meeting.title }}</strong>
+                                <span class="badge bg-secondary ms-1">{{ meeting.get_meeting_type_display }}</span>
+                            </div>
+                            <span class="badge
+                                {% if meeting.status == 'completed' %}bg-success
+                                {% elif meeting.status == 'cancelled' %}bg-danger
+                                {% else %}bg-info{% endif %}">
+                                {{ meeting.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="small text-muted mt-1 mb-1">
+                            <i class="fas fa-calendar me-1"></i> {{ meeting.meeting_date|date:"M d, Y H:i" }}
+                            {% if meeting.location %} · <i class="fas fa-map-marker-alt me-1"></i>{{ meeting.location }}{% endif %}
+                        </p>
+                        {% if meeting.description %}
+                        <p class="small mb-1">{{ meeting.description }}</p>
+                        {% endif %}
+                        {% if meeting.minutes %}
+                        <div class="alert alert-light py-2 small mb-0">
+                            <strong>Minutes:</strong> {{ meeting.minutes }}
+                        </div>
+                        {% endif %}
+                        {% if meeting.status == 'scheduled' %}
+                        <a href="{% url 'supervisor_meeting_update' meeting.id %}" class="btn btn-xs btn-outline-primary mt-2">
+                            <i class="fas fa-edit me-1"></i> Add Minutes / Complete
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">No meetings recorded.</div>
+                {% endfor %}
+            </div>
+
+            <!-- MILESTONES TAB -->
+            <div class="tab-pane fade" id="tab-milestones">
+                <div class="text-end mb-3">
+                    <a href="{% url 'supervisor_milestones' student.id %}" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus me-1"></i> Manage Milestones
+                    </a>
+                </div>
+                {% for ms in milestones %}
+                <div class="card mb-2 {% if ms.status == 'overdue' %}border-danger{% elif ms.status == 'completed' %}border-success{% endif %}">
+                    <div class="card-body py-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <strong class="small">{{ ms.title }}</strong>
+                            <span class="badge
+                                {% if ms.status == 'completed' %}bg-success
+                                {% elif ms.status == 'overdue' %}bg-danger
+                                {% elif ms.status == 'in_progress' %}bg-warning text-dark
+                                {% else %}bg-secondary{% endif %}">
+                                {{ ms.get_status_display }}
+                            </span>
+                        </div>
+                        <p class="small text-muted mb-0">Due: {{ ms.due_date|date:"M d, Y" }}
+                            {% if ms.completed_date %} · Completed: {{ ms.completed_date|date:"M d, Y" }}{% endif %}
+                        </p>
+                        {% if ms.description %}<p class="small mb-0">{{ ms.description }}</p>{% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="text-center py-4 text-muted">
+                    No milestones set. <a href="{% url 'supervisor_milestones' student.id %}">Add one</a>.
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

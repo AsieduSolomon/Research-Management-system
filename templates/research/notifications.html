@@ -1,0 +1,133 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Notifications{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-bell me-2 text-primary"></i>Notifications</h2>
+        {% if unread_count %}
+        <small class="text-muted">{{ unread_count }} unread</small>
+        {% endif %}
+    </div>
+    {% if unread_count %}
+    <form method="post">
+        {% csrf_token %}
+        <button name="mark_all_read" type="submit" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-check-double me-1"></i> Mark All Read
+        </button>
+    </form>
+    {% endif %}
+</div>
+
+<div class="card" style="max-width:720px;">
+    <div class="card-body p-0">
+        {% for notif in page_obj %}
+        <div class="d-flex align-items-start p-3 border-bottom notif-row
+                    {% if not notif.is_read %}notif-unread{% endif %}"
+             id="notif-{{ notif.id }}">
+
+            <!-- Icon -->
+            <div class="notif-icon me-3 flex-shrink-0">
+                {% if notif.notification_type == 'success' %}
+                <span class="badge bg-success rounded-circle p-2"><i class="fas fa-check"></i></span>
+                {% elif notif.notification_type == 'warning' %}
+                <span class="badge bg-warning text-dark rounded-circle p-2"><i class="fas fa-exclamation"></i></span>
+                {% elif notif.notification_type == 'danger' %}
+                <span class="badge bg-danger rounded-circle p-2"><i class="fas fa-times"></i></span>
+                {% else %}
+                <span class="badge bg-info rounded-circle p-2"><i class="fas fa-info"></i></span>
+                {% endif %}
+            </div>
+
+            <!-- Content -->
+            <div class="flex-grow-1 min-w-0">
+                <div class="d-flex justify-content-between align-items-start">
+                    <h6 class="mb-1 {% if not notif.is_read %}fw-bold{% endif %}">
+                        {{ notif.title }}
+                        {% if not notif.is_read %}
+                        <span class="badge bg-primary ms-1" style="font-size:0.65rem;">New</span>
+                        {% endif %}
+                    </h6>
+                    <small class="text-muted ms-3 flex-shrink-0">{{ notif.created_at|timesince }} ago</small>
+                </div>
+                <p class="mb-1 text-muted small">{{ notif.message }}</p>
+                <div class="d-flex gap-2 mt-1">
+                    {% if notif.link %}
+                    <a href="{{ notif.link }}" class="btn btn-xs btn-outline-primary">
+                        <i class="fas fa-arrow-right me-1"></i> View
+                    </a>
+                    {% endif %}
+                    {% if not notif.is_read %}
+                    <button class="btn btn-xs btn-outline-secondary mark-read-btn"
+                            data-id="{{ notif.id }}">
+                        <i class="fas fa-check me-1"></i> Mark Read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="text-center py-5">
+            <i class="fas fa-bell-slash fa-3x text-muted mb-3 d-block"></i>
+            <p class="text-muted mb-0">No notifications yet.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% if page_obj.has_other_pages %}
+<nav class="mt-4" style="max-width:720px;">
+    <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+        </li>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+        </li>
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<style>
+.notif-unread { background: rgba(41,128,185,0.05); border-left: 3px solid var(--primary) !important; }
+.notif-row { transition: background 0.2s; }
+.notif-row:hover { background: rgba(41,128,185,0.04); }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.querySelectorAll('.mark-read-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        var id = this.dataset.id;
+        fetch('{% url "api_mark_notification_read" %}', {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '',
+            },
+            body: 'notification_id=' + id,
+        }).then(function () {
+            var row = document.getElementById('notif-' + id);
+            if (row) {
+                row.classList.remove('notif-unread');
+                var badge = row.querySelector('.badge.bg-primary');
+                if (badge) badge.remove();
+                var b = row.querySelector('.mark-read-btn');
+                if (b) b.remove();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

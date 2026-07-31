@@ -1,0 +1,42 @@
+stu_research_django/
+├── manage.py
+├── requirements.txt
+├── db.sqlite3
+├── research/                 # Project folder
+│   ├── __init__.py
+│   ├── settings.py
+│   ├── urls.py
+│   ├── asgi.py                   # For Channels (WebSockets)
+│   ├── wsgi.py
+│   └── routing.py                # WebSocket routing
+├── templates/                    # Base templates
+│   ├── base.html
+│   ├── base_sidebar.html
+│   ├── includes/
+│   │   ├── sidebar_student.html
+│   │   ├── sidebar_supervisor.html
+│   │   ├── sidebar_admin.html
+│   │   └── notifications.html
+│   └── research/
+├── static/
+│   ├── css/
+│   │   └── custom.css
+│   ├── js/
+│   │   └── notifications.js
+│   └── images/
+└── research/                     # Main app
+    ├── __init__.py
+    ├── admin.py
+    ├── apps.py
+    ├── models.py
+    ├── views.py
+    ├── urls.py
+    ├── forms.py
+    ├── consumers.py              # WebSocket consumers for real-time
+    ├── routing.py                # App routing
+    ├── utils.py
+    ├── decorators.py
+    ├── templatetags/
+    │   ├── __init__.py
+    │   └── custom_filters.py
+    └── migrations/

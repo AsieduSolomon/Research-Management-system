@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Proposals{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Research Proposals</h2>
+            <div>
+                <form method="get" class="d-flex gap-2">
+                    <select name="status" class="form-select" style="width: 150px;" onchange="this.form.submit()">
+                        <option value="">All Status</option>
+                        <option value="submitted" {% if status_filter == 'submitted' %}selected{% endif %}>Submitted</option>
+                        <option value="under_review" {% if status_filter == 'under_review' %}selected{% endif %}>Under Review</option>
+                        <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                        <option value="revision_required" {% if status_filter == 'revision_required' %}selected{% endif %}>Revision Required</option>
+                        <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                    </select>
+                    <input type="text" name="search" class="form-control" placeholder="Search..." value="{{ search_query }}" style="width: 200px;">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{% url 'admin_proposals' %}" class="btn btn-secondary">Clear</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        {% if page_obj %}
+            <div class="alert alert-info">
+                Total proposals: {{ total_count }}
+            </div>
+            
+            {% for proposal in page_obj %}
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div style="flex: 1;">
+                            <h5>{{ proposal.title }}</h5>
+                            <p class="text-muted mb-1">
+                                <i class="fas fa-user me-2"></i><strong>Student:</strong> {{ proposal.student.get_full_name|default:proposal.student.username }} |
+                                <i class="fas fa-calendar me-2"></i><strong>Submitted:</strong> {{ proposal.created_at|date:"M d, Y H:i" }} |
+                                <i class="fas fa-building me-2"></i><strong>Department:</strong> {{ proposal.department|default:"N/A" }}
+                            </p>
+                            <p class="small mt-2">{{ proposal.abstract|truncatechars:300 }}</p>
+                            {% if proposal.keywords %}
+                            <p class="small text-muted"><strong>Keywords:</strong> {{ proposal.keywords }}</p>
+                            {% endif %}
+                            {% if proposal.document %}
+                            <a href="{{ proposal.document.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                <i class="fas fa-download me-1"></i> Download Document
+                            </a>
+                            {% endif %}
+                        </div>
+                        <div class="text-end ms-3">
+                            <span class="badge-status badge-{{ proposal.status }}">
+                                {{ proposal.get_status_display }}
+                            </span>
+                            <div class="mt-2">
+                                <a href="{% url 'admin_proposal_review' proposal.id %}" class="btn btn-sm btn-primary">
+                                    <i class="fas fa-eye me-1"></i> Review
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% if proposal.admin_comments %}
+                    <div class="mt-2 p-2 bg-light rounded">
+                        <strong>Admin Comments:</strong> {{ proposal.admin_comments }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav>
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                            Previous
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                    <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                        <a class="page-link" href="?page={{ num }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if status_filter %}&status={{ status_filter }}{% endif %}{% if search_query %}&search={{ search_query }}{% endif %}">
+                            Next
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-2"></i> No proposals found.
+                {% if total_count == 0 %}
+                <br>Make sure students have submitted proposals.
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

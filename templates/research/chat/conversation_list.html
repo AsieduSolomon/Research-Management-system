@@ -1,0 +1,87 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Messages{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="fas fa-comments me-2 text-primary"></i>Messages</h2>
+        {% if total_unread %}
+        <small class="text-muted">{{ total_unread }} unread message{{ total_unread|pluralize }}</small>
+        {% else %}
+        <small class="text-muted">All caught up</small>
+        {% endif %}
+    </div>
+</div>
+
+{% if not conversations %}
+<div class="card">
+    <div class="card-body text-center py-5">
+        <i class="fas fa-comments fa-3x text-muted mb-3 d-block"></i>
+        <h5 class="text-muted">No conversations yet</h5>
+        <p class="text-muted small mb-0">
+            {% if user.role == 'student' %}
+            Once a supervisor is assigned to you, you can message them here.
+            {% else %}
+            Your conversations with students will appear here.
+            {% endif %}
+        </p>
+    </div>
+</div>
+{% else %}
+<div class="card p-0" style="max-width: 680px;">
+    {% for conv in conversations %}
+    <a href="{% url 'conversation' conv.allocation.id %}"
+       class="d-flex align-items-center text-decoration-none text-dark border-bottom conv-row px-4 py-3
+              {% if conv.unread %}conv-unread{% endif %}">
+
+        <!-- Avatar -->
+        <div class="conv-avatar me-3 flex-shrink-0">
+            {% if conv.other_user.profile_pic %}
+            <img src="{{ conv.other_user.profile_pic.url }}"
+                 class="rounded-circle" width="52" height="52"
+                 style="object-fit:cover;" alt="">
+            {% else %}
+            <div class="conv-avatar-placeholder rounded-circle d-flex align-items-center justify-content-center"
+                 style="width:52px;height:52px;background:var(--light);font-size:1.3rem;color:var(--primary);">
+                <i class="fas fa-user"></i>
+            </div>
+            {% endif %}
+            {% if conv.unread %}
+            <span class="conv-unread-dot"></span>
+            {% endif %}
+        </div>
+
+        <!-- Info -->
+        <div class="flex-grow-1 min-w-0">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="fw-semibold {% if conv.unread %}text-dark{% else %}text-secondary{% endif %}">
+                    {{ conv.other_user.get_full_name|default:conv.other_user.username }}
+                </span>
+                <small class="text-muted ms-2 flex-shrink-0">
+                    {% if conv.last_msg %}{{ conv.last_msg.created_at|date:"M d" }}{% endif %}
+                </small>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-1">
+                <p class="mb-0 small text-truncate {% if conv.unread %}text-dark fw-semibold{% else %}text-muted{% endif %}"
+                   style="max-width:340px;">
+                    {% if conv.last_msg %}
+                        {% if conv.last_msg.sender == user %}You: {% endif %}
+                        {{ conv.last_msg.content|truncatechars:60 }}
+                    {% else %}
+                        <em>No messages yet</em>
+                    {% endif %}
+                </p>
+                {% if conv.unread %}
+                <span class="badge bg-primary rounded-pill ms-2 flex-shrink-0">{{ conv.unread }}</span>
+                {% endif %}
+            </div>
+            <small class="text-muted d-block mt-1" style="font-size:0.72rem;">
+                {{ conv.allocation.proposal.title|truncatechars:55 }}
+            </small>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

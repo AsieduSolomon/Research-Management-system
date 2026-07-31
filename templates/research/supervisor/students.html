@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}My Students{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">My Students</h2>
+    <a href="{% url 'supervisor_progress_overview' %}" class="btn btn-outline-primary">
+        <i class="fas fa-chart-bar me-2"></i> Progress Overview
+    </a>
+</div>
+
+{% if not allocations %}
+<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No students assigned to you yet.</div>
+{% else %}
+<div class="row g-4">
+    {% for alloc in allocations %}
+    <div class="col-md-6">
+        <div class="card h-100 {% if alloc.overdue_milestones %}border-danger{% endif %}">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <strong>{{ alloc.student.get_full_name|default:alloc.student.username }}</strong>
+                <span class="badge-status badge-{{ alloc.status }}">{{ alloc.get_status_display }}</span>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-1">
+                    <i class="fas fa-id-card me-1"></i> {{ alloc.student.student_id|default:"No ID" }} &nbsp;
+                    <i class="fas fa-envelope me-1"></i> {{ alloc.student.email }}
+                </p>
+                <p class="small text-muted mb-2">
+                    <i class="fas fa-building me-1"></i> {{ alloc.student.department|default:"No department" }}
+                </p>
+
+                <p class="small mb-1"><strong>Research:</strong> {{ alloc.proposal.title|truncatechars:70 }}</p>
+
+                <!-- Progress bar -->
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Avg Progress</span><span>{{ alloc.avg_progress }}%</span>
+                    </div>
+                    <div class="progress" style="height:8px;">
+                        <div class="progress-bar
+                            {% if alloc.avg_progress >= 70 %}bg-success
+                            {% elif alloc.avg_progress >= 40 %}bg-warning
+                            {% else %}bg-danger{% endif %}"
+                            style="width:{{ alloc.avg_progress }}%"></div>
+                    </div>
+                </div>
+
+                <!-- Quick stats row -->
+                <div class="row g-2 text-center mb-3">
+                    <div class="col-3">
+                        <div class="border rounded p-1">
+                            <div class="fw-bold">{{ alloc.report_count }}</div>
+                            <small class="text-muted">Reports</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="border rounded p-1 {% if alloc.pending_docs %}bg-warning bg-opacity-25{% endif %}">
+                            <div class="fw-bold">{{ alloc.pending_docs }}</div>
+                            <small class="text-muted">Pending</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="border rounded p-1">
+                            <div class="fw-bold">{{ alloc.done_milestones }}/{{ alloc.total_milestones }}</div>
+                            <small class="text-muted">Milestones</small>
+                        </div>
+                    </div>
+                    <div class="col-3">
+                        <div class="border rounded p-1 {% if alloc.overdue_milestones %}bg-danger bg-opacity-25{% endif %}">
+                            <div class="fw-bold text-danger">{{ alloc.overdue_milestones }}</div>
+                            <small class="text-muted">Overdue</small>
+                        </div>
+                    </div>
+                </div>
+
+                {% if alloc.last_report %}
+                <p class="small text-muted mb-2">
+                    Last submission: {{ alloc.last_report.submitted_at|date:"M d, Y" }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="card-footer bg-white d-flex gap-2 flex-wrap">
+                <a href="{% url 'supervisor_student_detail' alloc.student.id %}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-user me-1"></i> Manage
+                </a>
+                <a href="{% url 'supervisor_milestones' alloc.student.id %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="fas fa-flag me-1"></i> Milestones
+                </a>
+                <a href="{% url 'supervisor_documents' %}?student={{ alloc.student.id }}" class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-file-alt me-1"></i> Documents
+                    {% if alloc.pending_docs %}<span class="badge bg-danger ms-1">{{ alloc.pending_docs }}</span>{% endif %}
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

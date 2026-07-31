@@ -1,0 +1,143 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Milestones — {{ student.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <a href="{% url 'supervisor_student_detail' student.id %}" class="btn btn-sm btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <strong class="fs-5">Milestones — {{ student.get_full_name|default:student.username }}</strong>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Create form -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header"><i class="fas fa-plus me-2"></i>Add Milestone</div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" required
+                               placeholder="e.g. Literature Review Complete">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Due Date <span class="text-danger">*</span></label>
+                        <input type="date" name="due_date" class="form-control" required
+                               min="{{ today|date:'Y-m-d' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"
+                                  placeholder="What should the student deliver?"></textarea>
+                    </div>
+                    <button name="create_milestone" type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-flag me-1"></i> Create Milestone
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Milestone list -->
+    <div class="col-md-8">
+        {% if not milestones %}
+        <div class="alert alert-info">No milestones set yet. Use the form to create the first one.</div>
+        {% else %}
+        <!-- Summary bar -->
+        {% with total=milestones|length %}
+        <div class="row g-2 mb-3">
+            <div class="col-3 text-center">
+                <div class="border rounded p-2">
+                    <div class="fw-bold">{{ total }}</div><small class="text-muted">Total</small>
+                </div>
+            </div>
+            <div class="col-3 text-center">
+                <div class="border rounded p-2 bg-success bg-opacity-10">
+                    <div class="fw-bold text-success">{{ milestones|length }}</div>
+                    <small class="text-muted">Set</small>
+                </div>
+            </div>
+        </div>
+        {% endwith %}
+
+        {% for ms in milestones %}
+        <div class="card mb-3 {% if ms.status == 'overdue' %}border-danger{% elif ms.status == 'completed' %}border-success{% elif ms.status == 'in_progress' %}border-warning{% endif %}">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <strong>{{ ms.title }}</strong>
+                        <span class="badge ms-2
+                            {% if ms.status == 'completed' %}bg-success
+                            {% elif ms.status == 'overdue' %}bg-danger
+                            {% elif ms.status == 'in_progress' %}bg-warning text-dark
+                            {% else %}bg-secondary{% endif %}">
+                            {{ ms.get_status_display }}
+                        </span>
+                    </div>
+                    <small class="text-muted">Due: {{ ms.due_date|date:"M d, Y" }}</small>
+                </div>
+
+                {% if ms.description %}
+                <p class="small text-muted mb-2">{{ ms.description }}</p>
+                {% endif %}
+
+                {% if ms.completed_date %}
+                <p class="small text-success mb-2">
+                    <i class="fas fa-check-circle me-1"></i> Completed {{ ms.completed_date|date:"M d, Y" }}
+                </p>
+                {% endif %}
+
+                <!-- Update status form -->
+                <div class="d-flex gap-2 flex-wrap">
+                    {% if ms.status != 'completed' %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="milestone_id" value="{{ ms.id }}">
+                        <input type="hidden" name="milestone_status" value="in_progress">
+                        <button name="update_milestone" type="submit"
+                                class="btn btn-xs btn-outline-warning"
+                                {% if ms.status == 'in_progress' %}disabled{% endif %}>
+                            In Progress
+                        </button>
+                    </form>
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="milestone_id" value="{{ ms.id }}">
+                        <input type="hidden" name="milestone_status" value="completed">
+                        <button name="update_milestone" type="submit" class="btn btn-xs btn-outline-success">
+                            <i class="fas fa-check me-1"></i> Mark Complete
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if ms.status == 'completed' %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="milestone_id" value="{{ ms.id }}">
+                        <input type="hidden" name="milestone_status" value="pending">
+                        <button name="update_milestone" type="submit" class="btn btn-xs btn-outline-secondary">
+                            Reopen
+                        </button>
+                    </form>
+                    {% endif %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="milestone_id" value="{{ ms.id }}">
+                        <button name="delete_milestone" type="submit"
+                                class="btn btn-xs btn-outline-danger"
+                                onclick="return confirm('Delete this milestone?')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

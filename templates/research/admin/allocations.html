@@ -1,0 +1,317 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Supervisor Allocations{% endblock %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Supervisor Allocations</h2>
+            <div class="d-flex gap-2">
+                <span class="badge bg-primary fs-6">{{ allocations|length }} Total</span>
+                <span class="badge bg-warning text-dark fs-6">{{ approved_proposals|length }} Pending</span>
+            </div>
+        </div>
+        <p class="text-muted mt-1 mb-0 small">
+            Assign supervisors to approved proposals manually, or use the intelligent chaotic allocation algorithm.
+        </p>
+    </div>
+</div>
+
+<!-- Status messages already rendered by base.html -->
+
+<div class="row g-4">
+
+    <!-- ===== LEFT COLUMN: Forms ===== -->
+    <div class="col-lg-5">
+
+        <!-- MANUAL ALLOCATION CARD -->
+        <div class="card mb-4 shadow-sm">
+            <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                <span><i class="fas fa-user-plus me-2 text-primary"></i><strong>Manual Allocation</strong></span>
+                {% if approved_proposals %}
+                <span class="badge bg-warning text-dark">{{ approved_proposals|length }} waiting</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+
+                {% if not approved_proposals and not supervisors %}
+                    <div class="alert alert-secondary mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        No approved proposals and no supervisors found.<br>
+                        <small class="text-muted">
+                            Make sure students have submitted proposals and an admin has approved them,
+                            and that supervisor accounts exist.
+                        </small>
+                    </div>
+
+                {% elif not approved_proposals %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>No approved proposals waiting for allocation.</strong>
+                        <hr class="my-2">
+                        <small>
+                            To allocate a supervisor you must first approve a proposal.<br>
+                            Go to <a href="{% url 'admin_proposals' %}">Proposals</a>,
+                            click <em>Review</em> on a submitted proposal, and set status to
+                            <strong>Approved</strong>.
+                        </small>
+                    </div>
+
+                {% elif not supervisors %}
+                    <div class="alert alert-danger mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>No active supervisors found.</strong>
+                        <hr class="my-2">
+                        <small>
+                            Create a supervisor account first via
+                            <a href="{% url 'admin_user_create' %}">Add User</a>
+                            and set the role to <strong>Supervisor</strong>.
+                        </small>
+                    </div>
+
+                {% else %}
+                    <form method="post" action="{% url 'admin_allocations' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="manual_allocate" value="1">
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Proposal <span class="text-danger">*</span>
+                            </label>
+                            <select name="proposal_id" class="form-select" required>
+                                <option value="">— Select an approved proposal —</option>
+                                {% for proposal in approved_proposals %}
+                                <option value="{{ proposal.id }}">
+                                    {{ proposal.title|truncatechars:55 }}
+                                    ({{ proposal.student.get_full_name|default:proposal.student.username }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">{{ approved_proposals|length }} unallocated approved proposal(s).</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Supervisor <span class="text-danger">*</span>
+                            </label>
+                            <select name="supervisor_id" class="form-select" required>
+                                <option value="">— Select a supervisor —</option>
+                                {% for sup in supervisors %}
+                                <option value="{{ sup.id }}"
+                                    {% if sup.current_count >= sup.max_capacity %}disabled{% endif %}>
+                                    {{ sup.get_full_name|default:sup.username }}
+                                    — {{ sup.current_count }}/{{ sup.max_capacity }} students
+                                    {% if sup.current_count >= sup.max_capacity %}[FULL]{% endif %}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">
+                                Supervisors marked [FULL] have reached their student limit.
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notes <span class="text-muted">(optional)</span></label>
+                            <textarea name="notes" class="form-control" rows="2"
+                                      placeholder="Reason for this assignment, special instructions…"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-link me-2"></i> Allocate Supervisor
+                        </button>
+                    </form>
+                {% endif %}
+
+            </div>
+        </div>
+
+        <!-- CHAOTIC ALLOCATION CARD -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <i class="fas fa-brain me-2 text-success"></i><strong>Intelligent Chaotic Allocation</strong>
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Runs a <strong>logistic-map chaotic algorithm</strong> that automatically matches
+                    all unallocated approved proposals to available supervisors using
+                    TF-IDF cosine similarity on research interests, balanced against supervisor workload.
+                </p>
+
+                {% if approved_proposals and supervisors %}
+                    <form method="post" action="{% url 'admin_chaotic_allocation' %}"
+                          onsubmit="return confirm('Run chaotic allocation?\n\nThis will automatically assign ALL {{ approved_proposals|length }} unallocated proposal(s) to supervisors based on research interest matching.\n\nThis cannot be undone.')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100 mb-2">
+                            <i class="fas fa-random me-2"></i> Run Chaotic Allocation
+                            <span class="badge bg-white text-success ms-1">{{ approved_proposals|length }} proposals</span>
+                        </button>
+                        <p class="text-muted small mb-0 text-center">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Allocates all {{ approved_proposals|length }} pending proposals at once.
+                        </p>
+                    </form>
+
+                {% elif not approved_proposals %}
+                    <div class="d-grid">
+                        <button class="btn btn-success w-100" disabled>
+                            <i class="fas fa-check me-2"></i> All Proposals Allocated
+                        </button>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0 text-center">No pending proposals to process.</p>
+
+                {% else %}
+                    <div class="alert alert-warning mb-0">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        No supervisors available. Add supervisors first.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ===== RIGHT COLUMN: Tables ===== -->
+    <div class="col-lg-7">
+
+        <!-- CURRENT ALLOCATIONS TABLE -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white d-flex align-items-center justify-content-between">
+                <span><i class="fas fa-list me-2 text-primary"></i><strong>Current Allocations</strong></span>
+                <span class="badge bg-primary">{{ allocations|length }}</span>
+            </div>
+            <div class="card-body p-0">
+                {% if allocations %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Student</th>
+                                <th>Supervisor</th>
+                                <th>Proposal</th>
+                                <th style="width:90px;">Match</th>
+                                <th>Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alloc in allocations %}
+                            <tr>
+                                <td>
+                                    <strong>{{ alloc.student.get_full_name|default:alloc.student.username }}</strong>
+                                    {% if alloc.student.student_id %}
+                                    <br><small class="text-muted">{{ alloc.student.student_id }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ alloc.supervisor.get_full_name|default:alloc.supervisor.username }}
+                                    {% with sp=alloc.supervisor.supervisor_profile %}
+                                    {% if sp.specialization %}
+                                    <br><small class="text-muted">{{ sp.specialization|truncatechars:28 }}</small>
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <span title="{{ alloc.proposal.title }}">
+                                        {{ alloc.proposal.title|truncatechars:38 }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if alloc.match_score > 0 %}
+                                        {% with pct=alloc.match_score_pct %}
+                                        <div class="progress mb-1" style="height:12px;" title="{{ pct }}% match">
+                                            <div class="progress-bar
+                                                {% if pct >= 70 %}bg-success
+                                                {% elif pct >= 40 %}bg-warning
+                                                {% else %}bg-danger{% endif %}"
+                                                 style="width:{{ pct }}%">
+                                            </div>
+                                        </div>
+                                        <small class="text-muted">{{ pct }}%</small>
+                                        {% endwith %}
+                                    {% else %}
+                                        <span class="badge bg-secondary">Manual</span>
+                                    {% endif %}
+                                </td>
+                                <td><small>{{ alloc.allocation_date|date:"M d, Y" }}</small></td>
+                                <td>
+                                    {% if alloc.status == 'active' %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% elif alloc.status == 'completed' %}
+                                        <span class="badge bg-secondary">Completed</span>
+                                    {% else %}
+                                        <span class="badge bg-danger">Terminated</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-link fa-3x text-muted mb-3 d-block"></i>
+                    <p class="text-muted mb-1">No allocations made yet.</p>
+                    <small class="text-muted">Use the form on the left to assign supervisors to approved proposals.</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- SUPERVISOR CAPACITY OVERVIEW -->
+        {% if supervisors %}
+        <div class="card shadow-sm">
+            <div class="card-header bg-white">
+                <i class="fas fa-chalkboard-teacher me-2 text-primary"></i>
+                <strong>Supervisor Capacity</strong>
+            </div>
+            <div class="card-body">
+                {% if not supervisors %}
+                <p class="text-muted mb-0">No supervisors registered.</p>
+                {% else %}
+                <div class="row g-3">
+                    {% for sup in supervisors %}
+                    <div class="col-sm-6">
+                        <div class="border rounded p-2">
+                            <div class="d-flex justify-content-between align-items-start mb-1">
+                                <div>
+                                    <strong class="small">{{ sup.get_full_name|default:sup.username }}</strong>
+                                    {% with sp=sup.supervisor_profile %}
+                                    {% if sp.specialization %}
+                                    <br><small class="text-muted">{{ sp.specialization|truncatechars:32 }}</small>
+                                    {% else %}
+                                    <br><small class="text-muted">General</small>
+                                    {% endif %}
+                                    {% endwith %}
+                                </div>
+                                <span class="badge ms-2 flex-shrink-0
+                                    {% if sup.current_count >= sup.max_capacity %}bg-danger
+                                    {% elif sup.current_count >= sup.max_capacity|add:"-2" %}bg-warning text-dark
+                                    {% else %}bg-success{% endif %}">
+                                    {{ sup.current_count }}/{{ sup.max_capacity }}
+                                </span>
+                            </div>
+                            {% if sup.max_capacity > 0 %}
+                            {% widthratio sup.current_count sup.max_capacity 100 as cap_pct %}
+                            <div class="progress" style="height:5px;">
+                                <div class="progress-bar
+                                    {% if cap_pct >= 100 %}bg-danger
+                                    {% elif cap_pct >= 70 %}bg-warning
+                                    {% else %}bg-success{% endif %}"
+                                     style="width:{{ cap_pct }}%">
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+{% endblock %}

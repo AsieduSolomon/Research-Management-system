@@ -1,0 +1,167 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Student Documents{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Student Documents & Reports</h2>
+    <span class="badge bg-warning text-dark fs-6">{{ pending_docs|length }} Pending</span>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-body py-2">
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Document Type</label>
+                <select name="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Types</option>
+                    {% for val, label in report_types %}
+                    <option value="{{ val }}" {% if type_filter == val %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small mb-1">Student</label>
+                <select name="student" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="">All Students</option>
+                    {% for s in my_students %}
+                    <option value="{{ s.id }}" {% if student_filter == s.id|stringformat:"s" %}selected{% endif %}>
+                        {{ s.get_full_name|default:s.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <a href="{% url 'supervisor_documents' %}" class="btn btn-secondary btn-sm w-100">Clear</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link active" data-bs-toggle="tab" href="#tab-pending">
+            Pending Review <span class="badge bg-warning text-dark ms-1">{{ pending_docs|length }}</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="tab" href="#tab-reviewed">
+            Reviewed <span class="badge bg-secondary ms-1">{{ reviewed_docs|length }}</span>
+        </a>
+    </li>
+</ul>
+
+<div class="tab-content">
+    <!-- PENDING -->
+    <div class="tab-pane fade show active" id="tab-pending">
+        {% for doc in pending_docs %}
+        <div class="card mb-3 border-warning">
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-7">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ doc.title }}</h6>
+                                <span class="badge bg-secondary me-1">{{ doc.get_report_type_display }}</span>
+                                <span class="badge bg-warning text-dark">Pending</span>
+                            </div>
+                        </div>
+                        <p class="small text-muted mt-1 mb-1">
+                            <strong>Student:</strong>
+                            <a href="{% url 'supervisor_student_detail' doc.student.id %}">
+                                {{ doc.student.get_full_name|default:doc.student.username }}
+                            </a>
+                            · Submitted {{ doc.submitted_at|date:"M d, Y H:i" }}
+                        </p>
+                        {% if doc.content %}
+                        <p class="small mb-2">{{ doc.content }}</p>
+                        {% endif %}
+                        {% if doc.document %}
+                        <a href="{{ doc.document.url }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                            <i class="fas fa-download me-1"></i> Download
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-5">
+                        <form method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="report_id" value="{{ doc.id }}">
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold">Feedback <span class="text-danger">*</span></label>
+                                <textarea name="feedback" class="form-control form-control-sm" rows="4"
+                                          placeholder="Provide detailed feedback…" required></textarea>
+                            </div>
+                            <div class="row g-2 mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small">Rating</label>
+                                    <select name="rating" class="form-select form-select-sm">
+                                        <option value="1">⭐ (1/5)</option>
+                                        <option value="2">⭐⭐ (2/5)</option>
+                                        <option value="3" selected>⭐⭐⭐ (3/5)</option>
+                                        <option value="4">⭐⭐⭐⭐ (4/5)</option>
+                                        <option value="5">⭐⭐⭐⭐⭐ (5/5)</option>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Decision</label>
+                                    <select name="report_status" class="form-select form-select-sm">
+                                        <option value="reviewed">Reviewed</option>
+                                        <option value="approved">Approved ✅</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="fas fa-check me-1"></i> Submit Review
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i> All caught up — no pending documents.
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- REVIEWED -->
+    <div class="tab-pane fade" id="tab-reviewed">
+        {% for doc in reviewed_docs %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <div>
+                        <h6 class="mb-0">{{ doc.title }}</h6>
+                        <span class="badge bg-secondary me-1">{{ doc.get_report_type_display }}</span>
+                        <span class="badge {% if doc.status == 'approved' %}bg-success{% else %}bg-info{% endif %}">
+                            {{ doc.get_status_display }}
+                        </span>
+                    </div>
+                    {% if doc.supervisor_rating %}
+                    <span class="text-warning">{{ doc.supervisor_rating }}/5 ⭐</span>
+                    {% endif %}
+                </div>
+                <p class="small text-muted mb-1">
+                    <a href="{% url 'supervisor_student_detail' doc.student.id %}">
+                        {{ doc.student.get_full_name|default:doc.student.username }}
+                    </a>
+                    · Reviewed {{ doc.reviewed_at|date:"M d, Y H:i" }}
+                </p>
+                <div class="alert alert-light py-2 small mb-0">
+                    <strong>Feedback:</strong> {{ doc.supervisor_feedback }}
+                </div>
+                {% if doc.document %}
+                <a href="{{ doc.document.url }}" class="btn btn-xs btn-outline-secondary mt-2" target="_blank">
+                    <i class="fas fa-download me-1"></i> Download
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="alert alert-info">No reviewed documents yet.</div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

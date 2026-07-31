@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STU Research Portal — {% block title %}Home{% endblock %}</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/custom.css' %}">
+    <style>
+        /* ---- Notification dropdown ---- */
+        .notif-dropdown { width: 340px; max-height: 420px; overflow-y: auto; }
+        .notif-drop-item { display: flex; align-items: flex-start; gap: 10px;
+                           padding: 10px 14px; border-bottom: 1px solid #f0f4f8;
+                           text-decoration: none; color: inherit; transition: background .15s; }
+        .notif-drop-item:hover { background: #f5f9ff; }
+        .notif-drop-item.unread { background: rgba(41,128,185,0.06);
+                                  border-left: 3px solid var(--primary); }
+        .notif-drop-icon { width: 34px; height: 34px; border-radius: 50%;
+                           display: flex; align-items: center; justify-content: center;
+                           flex-shrink: 0; font-size: .8rem; }
+        .notif-drop-body { flex: 1; min-width: 0; }
+        .notif-drop-title { font-size: .84rem; font-weight: 600;
+                            white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .notif-drop-msg { font-size: .77rem; color: #6c757d;
+                          white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .notif-drop-time { font-size: .7rem; color: #aaa; white-space: nowrap; }
+
+        /* ---- Toast ---- */
+        #toast-container .toast { min-width: 280px; }
+
+        /* ---- btn-xs ---- */
+        .btn-xs { padding: 2px 8px; font-size: .75rem; border-radius: 6px; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+{% if user.is_authenticated %}{% include 'includes/sidebar.html' %}{% endif %}
+
+<div class="main-content {% if user.is_authenticated %}with-sidebar{% endif %}">
+
+    {% if user.is_authenticated %}
+    <nav class="top-nav">
+        <div class="container-fluid">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center">
+                    <button class="sidebar-toggle btn btn-link" id="sidebarToggle" aria-label="Toggle sidebar">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <h5 class="mb-0 ms-3 d-none d-md-block">STU Research Portal</h5>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+
+                    <!-- Messages button -->
+                    <a href="{% url 'conversation_list' %}" class="btn btn-link position-relative" title="Messages">
+                        <i class="fas fa-comments"></i>
+                        <span id="msg-badge"
+                              class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-success d-none">
+                            0
+                        </span>
+                    </a>
+
+                    <!-- Notifications bell dropdown -->
+                    <div class="dropdown">
+                        <button class="btn btn-link position-relative" type="button"
+                                id="notifToggle" data-bs-toggle="dropdown"
+                                aria-expanded="false" aria-label="Notifications">
+                            <i class="fas fa-bell"></i>
+                            <span id="notif-badge"
+                                  class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger
+                                         {% if not unread_notification_count %}d-none{% endif %}">
+                                {{ unread_notification_count|default:"0" }}
+                            </span>
+                        </button>
+
+                        <div class="dropdown-menu dropdown-menu-end p-0 shadow notif-dropdown"
+                             aria-labelledby="notifToggle">
+                            <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                                <strong class="small">Notifications</strong>
+                                <a href="{% url 'notifications' %}" class="small text-primary text-decoration-none">
+                                    View all
+                                </a>
+                            </div>
+                            <div id="notif-drop-list">
+                                <div class="text-center py-3 text-muted small">Loading…</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User menu -->
+                    <div class="dropdown">
+                        <button class="btn btn-link dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-user-circle me-1"></i>
+                            <span class="d-none d-md-inline">{{ user.get_full_name|default:user.username }}</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow">
+                            <li><a class="dropdown-item" href="{% url 'profile' %}">
+                                <i class="fas fa-user me-2"></i>Profile
+                            </a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                            </a></li>
+                        </ul>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <main class="py-4">
+        <div class="container-fluid">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:1200;"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+{% if user.is_authenticated %}
+<script>
+(function () {
+    'use strict';
+
+    /* ============================================================
+       1. WEBSOCKET — singleton exposed as window._stuWs
+       ============================================================ */
+    var wsProto       = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    var reconnectMs   = 2000;
+    var csrfToken     = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '';
+
+    function connect() {
+        var ws = new WebSocket(wsProto + location.host + '/ws/notifications/');
+        window._stuWs = ws;
+
+        ws.onopen = function () { reconnectMs = 2000; };
+
+        ws.onmessage = function (e) {
+            try { handleWsEvent(JSON.parse(e.data)); } catch (_) {}
+        };
+
+        ws.onclose = function () {
+            window._stuWs = null;
+            setTimeout(function () { reconnectMs = Math.min(reconnectMs * 2, 30000); connect(); }, reconnectMs);
+        };
+        ws.onerror = function () { ws.close(); };
+    }
+    connect();
+
+    /* ============================================================
+       2. HANDLE INCOMING WS EVENTS
+       ============================================================ */
+    function handleWsEvent(data) {
+        if (data.type === 'unread_count') {
+            updateNotifBadge(data.notif_count  || 0);
+            updateMsgBadge(data.msg_count     || 0);
+        }
+        if (data.type === 'notification') {
+            showToast(data.title, data.message, data.notif_type || 'info');
+            updateNotifBadge((parseInt(document.getElementById('notif-badge').textContent) || 0) + 1);
+        }
+        if (data.type === 'chat_message') {
+            /* Handled individually in conversation.html — just update badge here */
+            updateMsgBadge((parseInt(document.getElementById('msg-badge').textContent) || 0) + 1);
+            showToast('New message from ' + data.sender_name, data.content, 'info',
+                      '/chat/' + data.allocation_id + '/');
+        }
+    }
+
+    /* ============================================================
+       3. BADGE HELPERS
+       ============================================================ */
+    function updateNotifBadge(n) {
+        var el = document.getElementById('notif-badge');
+        if (!el) return;
+        if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.classList.remove('d-none'); }
+        else        { el.classList.add('d-none'); }
+    }
+
+    function updateMsgBadge(n) {
+        var el = document.getElementById('msg-badge');
+        if (!el) return;
+        if (n > 0) { el.textContent = n > 99 ? '99+' : n; el.classList.remove('d-none'); }
+        else        { el.classList.add('d-none'); }
+    }
+
+    /* ============================================================
+       4. TOAST
+       ============================================================ */
+    function showToast(title, body, type, link) {
+        var colors = { success:'#27AE60', danger:'#E74C3C', warning:'#F39C12', info:'#2980B9' };
+        var color  = colors[type] || colors.info;
+        var id     = 'toast-' + Date.now();
+        var inner  = link
+            ? '<a href="' + link + '" class="text-decoration-none text-dark">' + escHtml(body) + '</a>'
+            : escHtml(body);
+        var html =
+            '<div id="' + id + '" class="toast show align-items-center border-0 mb-2" role="alert">' +
+            '<div class="d-flex">' +
+            '<div class="toast-body">' +
+            '<div style="width:3px;height:100%;background:' + color + ';border-radius:3px;float:left;margin-right:10px;"></div>' +
+            '<strong>' + escHtml(title) + '</strong><br><small class="text-muted">' + inner + '</small>' +
+            '</div>' +
+            '<button type="button" class="btn-close me-2 m-auto" data-bs-dismiss="toast"></button>' +
+            '</div></div>';
+        document.getElementById('toast-container').insertAdjacentHTML('beforeend', html);
+        setTimeout(function () { var el = document.getElementById(id); if (el) el.remove(); }, 6000);
+    }
+
+    function escHtml(s) {
+        return String(s)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* ============================================================
+       5. NOTIFICATION DROPDOWN — fetch & render on open
+       ============================================================ */
+    var notifEl = document.getElementById('notifToggle');
+    if (notifEl) {
+        notifEl.addEventListener('show.bs.dropdown', loadNotifDropdown);
+    }
+
+    function loadNotifDropdown() {
+        var list = document.getElementById('notif-drop-list');
+        list.innerHTML = '<div class="text-center py-3 text-muted small">Loading…</div>';
+
+        fetch('{% url "api_recent_notifications" %}', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            if (!data.notifications || data.notifications.length === 0) {
+                list.innerHTML = '<div class="text-center py-3 text-muted small">No new notifications.</div>';
+                return;
+            }
+
+            var typeMap = {
+                success: { bg: '#E9F7EF', icon: 'fa-check',        color: '#27AE60' },
+                warning: { bg: '#FEF9E7', icon: 'fa-exclamation',   color: '#F39C12' },
+                danger:  { bg: '#FDEDEC', icon: 'fa-times',         color: '#E74C3C' },
+                info:    { bg: '#EBF5FB', icon: 'fa-info',          color: '#2980B9' },
+            };
+
+            var html = data.notifications.map(function (n) {
+                var t   = typeMap[n.type] || typeMap.info;
+                var href = n.link || '{% url "notifications" %}';
+                return '<a href="' + href + '" class="notif-drop-item unread" data-id="' + n.id + '">' +
+                    '<div class="notif-drop-icon" style="background:' + t.bg + ';color:' + t.color + ';">' +
+                        '<i class="fas ' + t.icon + '"></i>' +
+                    '</div>' +
+                    '<div class="notif-drop-body">' +
+                        '<div class="notif-drop-title">' + escHtml(n.title) + '</div>' +
+                        '<div class="notif-drop-msg">'   + escHtml(n.message) + '</div>' +
+                        '<div class="notif-drop-time">'  + escHtml(n.time) + '</div>' +
+                    '</div>' +
+                '</a>';
+            }).join('');
+
+            list.innerHTML = html;
+
+            // Mark each as read when clicked
+            list.querySelectorAll('.notif-drop-item').forEach(function (el) {
+                el.addEventListener('click', function () {
+                    var nid = this.dataset.id;
+                    if (nid) {
+                        fetch('{% url "api_mark_notification_read" %}', {
+                            method: 'POST',
+                            headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRFToken': csrfToken },
+                            body: 'notification_id=' + nid,
+                        });
+                        this.classList.remove('unread');
+                    }
+                });
+            });
+        })
+        .catch(function () {
+            list.innerHTML = '<div class="text-center py-3 text-danger small">Could not load notifications.</div>';
+        });
+    }
+
+})();
+</script>
+{% endif %}
+
+{% block extra_js %}{% endblock %}
+</body>
+</html>

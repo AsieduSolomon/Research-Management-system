@@ -1,0 +1,134 @@
+{% load static %}
+
+<nav class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="text-center">
+            <i class="fas fa-graduation-cap fa-2x text-white"></i>
+            <h5 class="text-white mt-2 mb-0">STU Research</h5>
+            <small class="text-light opacity-75">Sunyani Technical University</small>
+        </div>
+    </div>
+
+    <hr class="sidebar-divider">
+
+    <ul class="nav flex-column">
+
+        {% if user_role == 'admin' %}
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'dashboard' %}active{% endif %}" href="{% url 'admin_dashboard' %}">
+                    <i class="fas fa-chart-line me-2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'users' %}active{% endif %}" href="{% url 'admin_users' %}">
+                    <i class="fas fa-users me-2"></i> Users
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'proposals' %}active{% endif %}" href="{% url 'admin_proposals' %}">
+                    <i class="fas fa-file-alt me-2"></i> Proposals
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'allocations' %}active{% endif %}" href="{% url 'admin_allocations' %}">
+                    <i class="fas fa-link me-2"></i> Allocations
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'reports' %}active{% endif %}" href="{% url 'admin_reports' %}">
+                    <i class="fas fa-chart-bar me-2"></i> Reports
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'audit' %}active{% endif %}" href="{% url 'admin_audit_log' %}">
+                    <i class="fas fa-history me-2"></i> Audit Log
+                </a>
+            </li>
+
+        {% elif user_role == 'supervisor' %}
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'dashboard' %}active{% endif %}" href="{% url 'supervisor_dashboard' %}">
+                    <i class="fas fa-chart-line me-2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'students' %}active{% endif %}" href="{% url 'supervisor_students' %}">
+                    <i class="fas fa-user-graduate me-2"></i> My Students
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'documents' %}active{% endif %}" href="{% url 'supervisor_documents' %}">
+                    <i class="fas fa-file-pdf me-2"></i> Documents
+                    {% if unread_notification_count > 0 %}
+                    <span class="badge bg-warning text-dark ms-auto">!</span>
+                    {% endif %}
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'progress' %}active{% endif %}" href="{% url 'supervisor_progress_overview' %}">
+                    <i class="fas fa-chart-bar me-2"></i> Progress Overview
+                </a>
+            </li>
+
+        {% elif user_role == 'student' %}
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'dashboard' %}active{% endif %}" href="{% url 'student_dashboard' %}">
+                    <i class="fas fa-chart-line me-2"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'proposals' %}active{% endif %}" href="{% url 'student_proposals' %}">
+                    <i class="fas fa-file-alt me-2"></i> My Proposals
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if section == 'documents' %}active{% endif %}" href="{% url 'student_documents' %}">
+                    <i class="fas fa-upload me-2"></i> Submit Documents
+                </a>
+            </li>
+        {% endif %}
+
+        <!-- Shared links for all roles -->
+        <li class="nav-item">
+            <a class="nav-link {% if section == 'chat' %}active{% endif %}" href="{% url 'conversation_list' %}">
+                <i class="fas fa-comments me-2"></i> Messages
+                {% if unread_msg_count > 0 %}
+                <span class="badge bg-success ms-2">{{ unread_msg_count }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if section == 'meetings' %}active{% endif %}" href="{% url 'meetings' %}">
+                <i class="fas fa-calendar-alt me-2"></i> Meetings
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if section == 'notifications' %}active{% endif %}" href="{% url 'notifications' %}">
+                <i class="fas fa-bell me-2"></i> Notifications
+                {% if unread_notification_count > 0 %}
+                <span class="badge bg-danger ms-2">{{ unread_notification_count }}</span>
+                {% endif %}
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link {% if section == 'profile' %}active{% endif %}" href="{% url 'profile' %}">
+                <i class="fas fa-user-circle me-2"></i> Profile
+            </a>
+        </li>
+    </ul>
+
+    <hr class="sidebar-divider">
+
+    <div class="sidebar-footer">
+        <a class="nav-link text-danger" href="{% url 'logout' %}">
+            <i class="fas fa-sign-out-alt me-2"></i> Logout
+        </a>
+    </div>
+</nav>
+
+<script>
+    document.getElementById('sidebarToggle')?.addEventListener('click', function () {
+        document.getElementById('sidebar').classList.toggle('collapsed');
+        document.querySelector('.main-content').classList.toggle('expanded');
+    });
+</script>

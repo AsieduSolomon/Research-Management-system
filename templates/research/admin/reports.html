@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Reports & Analytics{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2>Reports & Analytics</h2>
+            <div>
+                <a href="?export=csv&date_range={{ date_range }}" class="btn btn-success">
+                    <i class="fas fa-download me-2"></i> Export to CSV
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Date Range Filter -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-auto">
+                        <label class="form-label">Date Range</label>
+                        <select name="date_range" class="form-select">
+                            <option value="all" {% if date_range == 'all' %}selected{% endif %}>All Time</option>
+                            <option value="week" {% if date_range == 'week' %}selected{% endif %}>Last 7 Days</option>
+                            <option value="month" {% if date_range == 'month' %}selected{% endif %}>Last 30 Days</option>
+                            <option value="year" {% if date_range == 'year' %}selected{% endif %}>Last Year</option>
+                        </select>
+                    </div>
+                    <div class="col-auto d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary">Apply Filter</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistics Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.total_proposals }}</div>
+            <div class="stat-label">Total Proposals</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.approved }}</div>
+            <div class="stat-label">Approved</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.rejected }}</div>
+            <div class="stat-label">Rejected</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="stat-number">{{ summary.pending }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-chart-pie me-2"></i> Proposal Status Distribution
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fas fa-users me-2"></i> User Statistics
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label>Students ({{ summary.total_students }})</label>
+                    <div class="progress-custom">
+                        <div class="progress-bar" style="width: {% widthratio summary.total_students summary.total_students 100 %}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label>Supervisors ({{ summary.total_supervisors }})</label>
+                    <div class="progress-custom">
+                        <div class="progress-bar" style="width: {% widthratio summary.total_supervisors summary.total_students 100 %}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label>Active Allocations ({{ summary.active_allocations }})</label>
+                    <div class="progress-custom">
+                        <div class="progress-bar" style="width: {% widthratio summary.active_allocations summary.total_proposals 100 %}%"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label>Completion Rate ({{ summary.completion_rate }}%)</label>
+                    <div class="progress-custom">
+                        <div class="progress-bar" style="width: {{ summary.completion_rate }}%"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Status chart
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Approved', 'Rejected', 'Pending', 'Draft'],
+            datasets: [{
+                data: [{{ summary.approved }}, {{ summary.rejected }}, {{ summary.pending }}, 0],
+                backgroundColor: ['#27AE60', '#E74C3C', '#F39C12', '#95A5A6'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

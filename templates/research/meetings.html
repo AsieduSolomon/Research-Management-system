@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Meetings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4">Meetings & Appointments</h2>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Schedule New Meeting</div>
+            <div class="card-body">
+                {% if form %}
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Title</label>
+                        <input type="text" name="title" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea name="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Date & Time</label>
+                        <input type="datetime-local" name="meeting_date" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Location / Link</label>
+                        <input type="text" name="location" class="form-control" placeholder="Room number or Zoom link">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Meeting Type</label>
+                        <select name="meeting_type" class="form-control">
+                            <option value="physical">Physical</option>
+                            <option value="virtual">Virtual</option>
+                            <option value="phone">Phone Call</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Schedule Meeting</button>
+                </form>
+                {% else %}
+                <p class="text-muted">You need an active supervisor allocation to schedule meetings.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">Upcoming Meetings</div>
+            <div class="card-body">
+                {% if meetings %}
+                    {% for meeting in meetings %}
+                    <div class="mb-3 pb-3 border-bottom">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h6 class="mb-1">{{ meeting.title }}</h6>
+                                <p class="small text-muted mb-1">
+                                    <i class="fas fa-calendar me-1"></i> {{ meeting.meeting_date|date:"F d, Y H:i" }}
+                                    <br>
+                                    <i class="fas fa-map-marker-alt me-1"></i> {{ meeting.location|default:"No location specified" }}
+                                    <br>
+                                    <i class="fas fa-tag me-1"></i> {{ meeting.get_meeting_type_display }}
+                                </p>
+                                {% if meeting.description %}
+                                <p class="small">{{ meeting.description }}</p>
+                                {% endif %}
+                                {% if meeting.status == 'scheduled' %}
+                                <span class="badge-status badge-scheduled">Scheduled</span>
+                                {% elif meeting.status == 'completed' %}
+                                <span class="badge-status badge-completed">Completed</span>
+                                {% else %}
+                                <span class="badge-status badge-cancelled">Cancelled</span>
+                                {% endif %}
+                            </div>
+                            {% if meeting.status == 'scheduled' and user.role == 'supervisor' %}
+                            <div>
+                                <form method="post" action="{% url 'meetings' %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="meeting_id" value="{{ meeting.id }}">
+                                    <button type="submit" name="complete_meeting" class="btn btn-sm btn-success">Mark Complete</button>
+                                </form>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if meeting.minutes %}
+                        <div class="mt-2 p-2 bg-light rounded">
+                            <strong>Minutes:</strong> {{ meeting.minutes }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No meetings scheduled.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
