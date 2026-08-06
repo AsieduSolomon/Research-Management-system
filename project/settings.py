@@ -165,7 +165,7 @@ if os.environ.get('DATABASE_URL'):
     DATABASES = {
         'default': dj_database_url.config(
             default=os.environ.get('DATABASE_URL'),
-            conn_max_age=600,
+            conn_max_age=0,  # no persistent connections: required for Supabase's PgBouncer pooler + serverless
             ssl_require=True
         )
     }
