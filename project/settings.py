@@ -169,6 +169,10 @@ if os.environ.get('DATABASE_URL'):
             ssl_require=True
         )
     }
+    # Required when the DB sits behind PgBouncer/Supavisor in transaction-pooling
+    # mode (Supabase's pooler): server-side cursors can't safely persist across
+    # statements that may get routed to different backend connections.
+    DATABASES['default']['DISABLE_SERVER_SIDE_CURSORS'] = True
 else:
     # Development database (SQLite)
     DATABASES = {
